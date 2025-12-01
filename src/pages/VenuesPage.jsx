@@ -1,6 +1,7 @@
 // src/pages/VenuesPage.jsx
 import { useEffect, useState } from "react";
 import { fetchVenues } from "../api/holidaze";
+import { Link } from "react-router-dom";
 
 export default function VenuesPage() {
   const [venues, setVenues] = useState([]);
@@ -70,6 +71,9 @@ export default function VenuesPage() {
               const firstImage = venue.media?.[0];
 
               return (
+
+                <Link to={`/venues/${venue.id}`} className="block hover:opacity-90">
+
                 <article
                   key={venue.id}
                   className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 flex flex-col"
@@ -104,6 +108,7 @@ export default function VenuesPage() {
                     </div>
                   </div>
                 </article>
+                </Link>
               );
             })}
           </div>

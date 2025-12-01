@@ -23,7 +23,7 @@ export default function VenueDetailsPage() {
   }, [id]);
 
   if (loading) return <p className="text-white p-6">Loading...</p>;
-  if (!venue) return <p className="text-white p-6">Venue not found.</p>;
+  if (!venue) return <p className="text-black p-6">Venue not found.</p>;
 
   return (
     <div className="text-white max-w-4xl mx-auto mt-10">
