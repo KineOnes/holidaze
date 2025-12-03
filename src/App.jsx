@@ -8,9 +8,19 @@ import ProfilePage from './pages/ProfilePage.jsx';
 import ManageVenuesPage from './pages/ManageVenuesPage.jsx';
 import ManageBookingsPage from './pages/ManageBookingsPage.jsx';
 import NotFoundPage from './pages/NotFoundPage.jsx';
+import Navbar from "./components/Navbar.jsx";
+
 
 function App() {
   return (
+
+    <div className="min-h-screen bg-slate-900 text-slate-50">
+      <Navbar />
+
+      {/* Padding top so content isn't hidden behind the sticky nav */}
+      <div className="pt-20">
+
+      
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/venues" element={<VenuesPage />} />
@@ -22,6 +32,8 @@ function App() {
       <Route path="/manage/bookings" element={<ManageBookingsPage />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </div>
+    </div>
   );
 }
 
