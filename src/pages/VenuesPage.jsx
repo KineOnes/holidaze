@@ -22,7 +22,9 @@ export default function VenuesPage() {
         }
       } catch (err) {
         if (isMounted) {
-          setError(err.message || "Something went wrong while loading venues.");
+          setError(
+            err.message || "Something went wrong while loading venues."
+          );
         }
       } finally {
         if (isMounted) {
@@ -71,43 +73,43 @@ export default function VenuesPage() {
               const firstImage = venue.media?.[0];
 
               return (
-
-                <Link to={`/venues/${venue.id}`} className="block hover:opacity-90">
-
-                <article
-                  key={venue.id}
-                  className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 flex flex-col"
+                <Link
+                  key={venue.id} // 👈 key moved here
+                  to={`/venues/${venue.id}`}
+                  className="block hover:opacity-90"
                 >
-                  {firstImage ? (
-                    <img
-                      src={firstImage.url}
-                      alt={firstImage.alt || venue.name}
-                      className="h-40 w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-40 w-full bg-slate-700 flex items-center justify-center text-slate-300 text-sm">
-                      No image
-                    </div>
-                  )}
+                  <article className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 flex flex-col">
+                    {firstImage ? (
+                      <img
+                        src={firstImage.url}
+                        alt={firstImage.alt || venue.name}
+                        className="h-40 w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-40 w-full bg-slate-700 flex items-center justify-center text-slate-300 text-sm">
+                        No image
+                      </div>
+                    )}
 
-                  <div className="p-4 flex-1 flex flex-col">
-                    <h2 className="text-lg font-semibold mb-2 line-clamp-1">
-                      {venue.name}
-                    </h2>
-                    <p className="text-sm text-slate-300 mb-3 line-clamp-2">
-                      {venue.description}
-                    </p>
+                    <div className="p-4 flex-1 flex flex-col">
+                      <h2 className="text-lg font-semibold mb-2 line-clamp-1">
+                        {venue.name}
+                      </h2>
+                      <p className="text-sm text-slate-300 mb-3 line-clamp-2">
+                        {venue.description}
+                      </p>
 
-                    <div className="mt-auto flex items-center justify-between text-sm">
-                      <span className="font-semibold">
-                        {venue.price} <span className="text-slate-300">NOK/night</span>
-                      </span>
-                      <span className="text-slate-300">
-                        Max {venue.maxGuests} guests
-                      </span>
+                      <div className="mt-auto flex items-center justify-between text-sm">
+                        <span className="font-semibold">
+                          {venue.price}{" "}
+                          <span className="text-slate-300">NOK/night</span>
+                        </span>
+                        <span className="text-slate-300">
+                          Max {venue.maxGuests} guests
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                </article>
+                  </article>
                 </Link>
               );
             })}
