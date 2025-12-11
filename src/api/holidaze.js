@@ -96,24 +96,26 @@ export async function loginUser({ email, password }) {
  * Docs: GET /holidaze/profiles/{name}?_bookings=true&_venues=true
  */
 export async function fetchProfileWithBookings(name, token) {
-  const url = `${API_BASE}/holidaze/profiles/${name}?_bookings=true&_venues=true`;
-
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `Bearer ${token}`, // authenticated endpoint
-    },
-  });
-
-  const json = await response.json();
-
-  if (!response.ok) {
-    const message =
-      json.errors?.[0]?.message || "Failed to load profile data.";
-    throw new Error(message);
+    const url = `${API_BASE}/holidaze/profiles/${name}?_bookings=true&_venues=true`;
+  
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "X-Noroff-API-Key": import.meta.env.VITE_API_KEY,
+      },
+    });
+  
+    const json = await response.json();
+  
+    if (!response.ok) {
+      const message =
+        json.errors?.[0]?.message || "Failed to load profile data.";
+      throw new Error(message);
+    }
+  
+    return json.data;
   }
-
-  return json.data; // contains bookings[] and venues[] if any
-}
+  
 
 // Get venues owned by a specific profile (used for Manage Venues page)
 export async function fetchManagedVenues(profileName, accessToken) {
@@ -123,8 +125,9 @@ export async function fetchManagedVenues(profileName, accessToken) {
         headers: {
           Authorization: `Bearer ${accessToken}`,
           "Content-Type": "application/json",
+          "X-Noroff-API-Key": import.meta.env.VITE_API_KEY,
         },
-      },
+      }
     );
   
     if (!response.ok) {
@@ -132,6 +135,7 @@ export async function fetchManagedVenues(profileName, accessToken) {
     }
   
     const json = await response.json();
-    return json.data; // array of venues
+    return json.data;
   }
+  
   
