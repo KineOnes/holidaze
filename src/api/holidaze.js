@@ -114,3 +114,24 @@ export async function fetchProfileWithBookings(name, token) {
 
   return json.data; // contains bookings[] and venues[] if any
 }
+
+// Get venues owned by a specific profile (used for Manage Venues page)
+export async function fetchManagedVenues(profileName, accessToken) {
+    const response = await fetch(
+      `${API_BASE}/holidaze/profiles/${encodeURIComponent(profileName)}/venues`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      },
+    );
+  
+    if (!response.ok) {
+      throw new Error(`Failed to load managed venues (status ${response.status})`);
+    }
+  
+    const json = await response.json();
+    return json.data; // array of venues
+  }
+  

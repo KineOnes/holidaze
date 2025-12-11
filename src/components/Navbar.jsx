@@ -1,21 +1,27 @@
 // src/components/Navbar.jsx
 import { useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Navbar() {
-  // TODO: replace these with real auth state later
-  const isLoggedIn = false;       // change when auth is done
-  const isVenueManager = false;   // change when auth is done
-
   const [isOpen, setIsOpen] = useState(false);
+  const { isLoggedIn, venueManager, user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const linkBase =
     "px-3 py-2 rounded-md text-sm font-medium transition-colors";
-  const linkInactive = "text-slate-200 hover:text-white hover:bg-slate-700/60";
+  const linkInactive =
+    "text-slate-200 hover:text-white hover:bg-slate-700/60";
   const linkActive = "bg-slate-100 text-slate-900";
 
   function navClass({ isActive }) {
     return `${linkBase} ${isActive ? linkActive : linkInactive}`;
+  }
+
+  function handleLogout() {
+    logout();
+    setIsOpen(false);
+    navigate("/");
   }
 
   return (
@@ -46,7 +52,7 @@ export default function Navbar() {
                   Profile
                 </NavLink>
 
-                {isVenueManager && (
+                {venueManager && (
                   <>
                     <NavLink to="/manage/venues" className={navClass}>
                       Manage venues
@@ -56,6 +62,18 @@ export default function Navbar() {
                     </NavLink>
                   </>
                 )}
+
+                {/* User + logout */}
+                <span className="text-sm text-slate-300 px-2">
+                  {user?.name}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="px-3 py-2 rounded-md text-sm font-medium border border-slate-600 text-slate-200 hover:bg-slate-700/60"
+                >
+                  Log out
+                </button>
               </>
             )}
 
@@ -79,7 +97,6 @@ export default function Navbar() {
               className="inline-flex items-center justify-center rounded-md p-2 text-slate-200 hover:bg-slate-700/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:ring-offset-2 focus:ring-offset-slate-900"
             >
               <span className="sr-only">Open main menu</span>
-              {/* Icon: hamburger / close */}
               {isOpen ? (
                 // X icon
                 <svg
@@ -124,7 +141,11 @@ export default function Navbar() {
       {isOpen && (
         <div className="md:hidden border-t border-slate-700 bg-slate-900/95 backdrop-blur">
           <div className="space-y-1 px-2 pt-2 pb-3">
-            <NavLink to="/venues" className={navClass} onClick={() => setIsOpen(false)}>
+            <NavLink
+              to="/venues"
+              className={navClass}
+              onClick={() => setIsOpen(false)}
+            >
               Browse venues
             </NavLink>
 
@@ -138,7 +159,7 @@ export default function Navbar() {
                   Profile
                 </NavLink>
 
-                {isVenueManager && (
+                {venueManager && (
                   <>
                     <NavLink
                       to="/manage/venues"
@@ -156,6 +177,14 @@ export default function Navbar() {
                     </NavLink>
                   </>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="w-full text-left px-3 py-2 rounded-md text-sm font-medium text-slate-200 hover:bg-slate-700/60"
+                >
+                  Log out
+                </button>
               </>
             )}
 
