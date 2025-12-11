@@ -35,7 +35,7 @@ export async function fetchVenue(id) {
 
 /**
  * Register a new user
- * Docs: POST /auth/register :contentReference[oaicite:0]{index=0}
+ * Docs: POST /auth/register
  */
 export async function registerUser({ name, email, password, venueManager }) {
   const response = await fetch(`${API_BASE}/auth/register`, {
@@ -65,7 +65,7 @@ export async function registerUser({ name, email, password, venueManager }) {
 
 /**
  * Log in a user
- * Docs: POST /auth/login (with optional _holidaze=true to include venueManager etc) :contentReference[oaicite:1]{index=1}
+ * Docs: POST /auth/login?_holidaze=true
  */
 export async function loginUser({ email, password }) {
   const response = await fetch(`${API_BASE}/auth/login?_holidaze=true`, {
@@ -87,6 +87,30 @@ export async function loginUser({ email, password }) {
     throw new Error(message);
   }
 
-  // json.data contains name, email, accessToken, venueManager, etc.
+  // json.data contains profile info + accessToken
   return json.data;
+}
+
+/**
+ * Get a profile including bookings and venues
+ * Docs: GET /holidaze/profiles/{name}?_bookings=true&_venues=true
+ */
+export async function fetchProfileWithBookings(name, token) {
+  const url = `${API_BASE}/holidaze/profiles/${name}?_bookings=true&_venues=true`;
+
+  const response = await fetch(url, {
+    headers: {
+      Authorization: `Bearer ${token}`, // authenticated endpoint
+    },
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    const message =
+      json.errors?.[0]?.message || "Failed to load profile data.";
+    throw new Error(message);
+  }
+
+  return json.data; // contains bookings[] and venues[] if any
 }

@@ -1,29 +1,78 @@
 // src/pages/ProfilePage.jsx
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { fetchProfileWithBookings } from "../api/holidaze.js";
 
 export default function ProfilePage() {
-  const { user, isLoggedIn, venueManager, logout } = useAuth();
+  const { user, isLoggedIn, venueManager, token, logout } = useAuth();
   const navigate = useNavigate();
 
-  // Just in case this page is ever reached without auth
-  if (!isLoggedIn || !user) {
-    navigate("/login");
-    return null;
-  }
+  const [profileData, setProfileData] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [profileError, setProfileError] = useState(null);
 
-  const avatarUrl = user.avatar?.url;
-  const avatarAlt = user.avatar?.alt || user.name;
+  // Guard: if something is weird and we’re here without auth
+  useEffect(() => {
+    if (!isLoggedIn || !user) {
+      navigate("/login");
+    }
+  }, [isLoggedIn, user, navigate]);
+
+  // Load profile with bookings + venues from API
+  useEffect(() => {
+    if (!user || !token) return;
+
+    async function loadProfile() {
+      setLoadingProfile(true);
+      setProfileError(null);
+
+      try {
+        const data = await fetchProfileWithBookings(user.name, token);
+        setProfileData(data);
+      } catch (err) {
+        console.error(err);
+        setProfileError(err.message);
+      } finally {
+        setLoadingProfile(false);
+      }
+    }
+
+    loadProfile();
+  }, [user, token]);
 
   function handleLogout() {
     logout();
     navigate("/");
   }
 
+  // Compute upcoming bookings (today or future)
+  const upcomingBookings = useMemo(() => {
+    if (!profileData?.bookings) return [];
+
+    const today = new Date();
+
+    return profileData.bookings
+      .filter((booking) => {
+        if (!booking.dateFrom) return false;
+        const from = new Date(booking.dateFrom);
+        return from >= today;
+      })
+      .sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
+  }, [profileData]);
+
+  if (!isLoggedIn || !user) {
+    return null; // Redirect effect will handle it
+  }
+
+  const avatarUrl = user.avatar?.url;
+  const avatarAlt = user.avatar?.alt || user.name;
+
   return (
     <main className="min-h-screen bg-slate-900 text-slate-50">
-      <section className="max-w-3xl mx-auto px-4 py-10">
-        <header className="flex items-center gap-6 mb-8">
+      <section className="max-w-4xl mx-auto px-4 py-10 space-y-8">
+        {/* Header */}
+        <header className="flex items-center gap-6">
           <div className="h-20 w-20 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-600">
             {avatarUrl ? (
               <img
@@ -61,6 +110,7 @@ export default function ProfilePage() {
           </div>
         </header>
 
+        {/* Account info */}
         <section className="grid gap-4 md:grid-cols-2">
           <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
             <h2 className="text-lg font-semibold mb-2">Account</h2>
@@ -81,12 +131,63 @@ export default function ProfilePage() {
           </div>
 
           <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-            <h2 className="text-lg font-semibold mb-2">Activity</h2>
-            <p className="text-sm text-slate-300">
-              Later we’ll show upcoming bookings and your venues here.
-            </p>
+            <h2 className="text-lg font-semibold mb-2">Profile data status</h2>
+            {loadingProfile && (
+              <p className="text-sm text-slate-300">Loading bookings…</p>
+            )}
+            {profileError && (
+              <p className="text-sm text-red-400">
+                Could not load bookings: {profileError}
+              </p>
+            )}
+            {!loadingProfile && !profileError && (
+              <p className="text-sm text-slate-300">
+                {upcomingBookings.length > 0
+                  ? `You have ${upcomingBookings.length} upcoming booking${
+                      upcomingBookings.length > 1 ? "s" : ""
+                    }.`
+                  : "You have no upcoming bookings."}
+              </p>
+            )}
           </div>
         </section>
+
+        {/* Upcoming bookings */}
+        <section className="mt-10">
+  <h2 className="text-xl font-semibold mb-4">Upcoming bookings</h2>
+
+  {upcomingBookings.length === 0 ? (
+    <p className="text-slate-300">You have no upcoming bookings.</p>
+  ) : (
+    <ul className="space-y-4">
+      {upcomingBookings.map((booking) => {
+        const venue = booking.venue;
+        const dateFrom = new Date(booking.dateFrom);
+        const dateTo = new Date(booking.dateTo);
+
+        return (
+          <li
+            key={booking.id}
+            className="bg-slate-800 p-4 rounded-lg border border-slate-700"
+          >
+            <p className="text-sm font-semibold">
+              {venue?.name || "Unknown venue"}
+            </p>
+
+            <p className="text-xs text-slate-300">
+              {dateFrom.toLocaleDateString()} → {dateTo.toLocaleDateString()}
+            </p>
+
+            <p className="text-xs text-slate-400">
+              Guests: {booking.guests}
+            </p>
+          </li>
+        );
+      })}
+    </ul>
+  )}
+</section>
+
       </section>
     </main>
   );
