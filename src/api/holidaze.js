@@ -2,8 +2,6 @@
 
 // Base URL from the Noroff v2 API docs
 const API_BASE = "https://v2.api.noroff.dev";
-//const API_KEY = import.meta.env.VITE_API_KEY;
-
 
 // Read the API key from your .env.local file
 // VITE_API_KEY="your-key-here"
@@ -77,7 +75,6 @@ export async function registerUser({ name, email, password, venueManager }) {
     throw new Error(message);
   }
 
-  // Returns the newly created profile (no token here)
   return json.data;
 }
 
@@ -91,10 +88,7 @@ export async function loginUser({ email, password }) {
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      email,
-      password,
-    }),
+    body: JSON.stringify({ email, password }),
   });
 
   const json = await response.json();
@@ -105,8 +99,7 @@ export async function loginUser({ email, password }) {
     throw new Error(message);
   }
 
-  // json.data contains profile info + accessToken
-  return json.data;
+  return json.data; // profile info + accessToken
 }
 
 /**
@@ -114,89 +107,105 @@ export async function loginUser({ email, password }) {
  * Docs: GET /holidaze/profiles/{name}?_bookings=true&_venues=true
  * (Requires Bearer token + API key)
  */
-/**
- * Get a profile including bookings and venues
- * Docs: GET /holidaze/profiles/{name}?_bookings=true&_venues=true
- */
 export async function fetchProfileWithBookings(name, token) {
-    const url = `${API_BASE}/holidaze/profiles/${name}?_bookings=true&_venues=true`;
-  
-    const response = await fetch(url, {
-      headers: {
-        Authorization: `Bearer ${token}`, // authenticated endpoint
-        "X-Noroff-API-Key": API_KEY,
-      },
-    });
-  
-    const json = await response.json();
-  
-    if (!response.ok) {
-      const message =
-        json.errors?.[0]?.message || "Failed to load profile data.";
-      throw new Error(message);
-    }
-  
-    return json.data; // contains bookings[] and venues[] if any
+  const url = `${API_BASE}/holidaze/profiles/${encodeURIComponent(
+    name
+  )}?_bookings=true&_venues=true`;
+
+  const response = await fetch(url, {
+    headers: withApiKey({
+      Authorization: `Bearer ${token}`,
+    }),
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    const message = json.errors?.[0]?.message || "Failed to load profile data.";
+    throw new Error(message);
   }
-  
+
+  return json.data;
+}
 
 /**
  * Get venues owned by a specific profile
  * Docs: GET /holidaze/profiles/{name}/venues
- * Used for Manage Venues page
  * (Requires Bearer token + API key)
  */
-// Get venues owned by a specific profile (used for Manage Venues page)
 export async function fetchManagedVenues(profileName, accessToken) {
-    const response = await fetch(
-      `${API_BASE}/holidaze/profiles/${encodeURIComponent(profileName)}/venues`,
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-          "X-Noroff-API-Key": API_KEY,
-        },
-      }
-    );
-  
-    if (!response.ok) {
-      const json = await response.json().catch(() => ({}));
-      const message =
-        json.errors?.[0]?.message ||
-        `Failed to load managed venues (status ${response.status})`;
-      throw new Error(message);
+  const response = await fetch(
+    `${API_BASE}/holidaze/profiles/${encodeURIComponent(profileName)}/venues`,
+    {
+      headers: withApiKey({
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      }),
     }
-  
-    const json = await response.json();
-    return json.data; // array of venues
+  );
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    const message =
+      json.errors?.[0]?.message ||
+      `Failed to load managed venues (status ${response.status})`;
+    throw new Error(message);
   }
-  
+
+  return json.data; // array of venues
+}
 
 /**
  * Create a new venue
  * Docs: POST /holidaze/venues
  * (Requires Bearer token + API key)
  */
-
 export async function createVenue(accessToken, venueData) {
-    const response = await fetch(`${API_BASE}/holidaze/venues`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
-        "X-Noroff-API-Key": API_KEY,
-      },
-      body: JSON.stringify(venueData),
-    });
-  
-    const json = await response.json();
-  
-    if (!response.ok) {
-      const message =
-        json.errors?.[0]?.message || "Failed to create venue. Please try again.";
-      throw new Error(message);
-    }
-  
-    return json.data; // the created venue object
+  const response = await fetch(`${API_BASE}/holidaze/venues`, {
+    method: "POST",
+    headers: withApiKey({
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+    }),
+    body: JSON.stringify(venueData),
+  });
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    const message =
+      json.errors?.[0]?.message || "Failed to create venue. Please try again.";
+    throw new Error(message);
   }
-  
+
+  return json.data;
+}
+
+/**
+ * Get a venue including its bookings (for Venue Manager)
+ * Docs: GET /holidaze/venues/{id}?_bookings=true
+ * (Requires Bearer token + API key)
+ */
+export async function fetchVenueWithBookings(venueId, accessToken) {
+  const response = await fetch(
+    `${API_BASE}/holidaze/venues/${encodeURIComponent(
+      venueId
+    )}?_bookings=true`,
+    {
+      headers: withApiKey({
+        Authorization: `Bearer ${accessToken}`,
+      }),
+    }
+  );
+
+  const json = await response.json();
+
+  if (!response.ok) {
+    const message =
+      json.errors?.[0]?.message || "Failed to load venue bookings.";
+    throw new Error(message);
+  }
+
+  return json.data; // venue object including bookings[]
+}
