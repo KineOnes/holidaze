@@ -235,3 +235,37 @@ export async function createBooking(accessToken, bookingData) {
     return json.data; // created booking
   }
   
+  /**
+ * Update a profile avatar
+ * Docs: PUT /holidaze/profiles/{name}
+ * (Requires Bearer token + API key)
+ */
+export async function updateAvatar(profileName, accessToken, avatarUrl, avatarAlt = "") {
+    const response = await fetch(
+      `${API_BASE}/holidaze/profiles/${encodeURIComponent(profileName)}`,
+      {
+        method: "PUT",
+        headers: withApiKey({
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        }),
+        body: JSON.stringify({
+          avatar: {
+            url: avatarUrl,
+            alt: avatarAlt,
+          },
+        }),
+      }
+    );
+  
+    const json = await response.json();
+  
+    if (!response.ok) {
+      const message =
+        json.errors?.[0]?.message || "Failed to update avatar. Please try again.";
+      throw new Error(message);
+    }
+  
+    return json.data; // updated profile
+  }
+  
