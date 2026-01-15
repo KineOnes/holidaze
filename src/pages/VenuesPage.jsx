@@ -1,115 +1,136 @@
 // src/pages/VenuesPage.jsx
-import { useEffect, useState } from "react";
-import { fetchVenues } from "../api/holidaze";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { fetchVenues, searchVenues } from "../api/holidaze.js";
 
 export default function VenuesPage() {
   const [venues, setVenues] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [query, setQuery] = useState("");
+
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // 1) Load venues (and re-load when query changes)
   useEffect(() => {
-    let isMounted = true;
+    let cancelled = false;
 
-    async function loadVenues() {
-      setIsLoading(true);
+    async function load() {
+      setLoading(true);
       setError(null);
 
       try {
-        const data = await fetchVenues();
-        if (isMounted) {
-          setVenues(data);
-        }
+        // If user typed something -> search endpoint
+        // If empty -> normal list
+        const data =
+          query.trim().length > 0
+            ? await searchVenues(query.trim())
+            : await fetchVenues();
+
+        if (!cancelled) setVenues(data);
       } catch (err) {
-        if (isMounted) {
-          setError(
-            err.message || "Something went wrong while loading venues."
-          );
-        }
+        if (!cancelled) setError(err.message);
       } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
-    loadVenues();
+    // Small delay so it doesn't call API on every single keystroke instantly
+    const t = setTimeout(load, 300);
 
     return () => {
-      // clean-up in case the component unmounts
-      isMounted = false;
+      cancelled = true;
+      clearTimeout(t);
     };
-  }, []);
+  }, [query]);
 
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-slate-900 text-slate-50 flex items-center justify-center">
-        <p className="text-xl">Loading venues…</p>
-      </main>
-    );
-  }
-
-  if (error) {
-    return (
-      <main className="min-h-screen bg-slate-900 text-slate-50 flex items-center justify-center">
-        <div className="text-center space-y-2">
-          <p className="text-xl font-semibold">Couldn’t load venues</p>
-          <p className="text-sm text-slate-300">{error}</p>
-        </div>
-      </main>
-    );
-  }
+  // Optional: sort results A → Z (nicer)
+  const sortedVenues = useMemo(() => {
+    return [...venues].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [venues]);
 
   return (
     <main className="min-h-screen bg-slate-900 text-slate-50">
-      <section className="max-w-6xl mx-auto px-4 py-10">
-        <h1 className="text-3xl font-bold mb-6">Browse venues</h1>
+      <section className="max-w-6xl mx-auto px-4 py-10 space-y-6">
+        <header className="space-y-2">
+          <h1 className="text-4xl font-bold">Browse venues</h1>
 
-        {venues.length === 0 ? (
-          <p>No venues found.</p>
-        ) : (
+          {/* Search input */}
+          <div className="max-w-xl">
+            <label className="block text-sm text-slate-300 mb-2">
+              Search for a venue
+            </label>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Type a venue name…"
+              className="w-full rounded-md bg-slate-800 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+            />
+            {query.trim().length > 0 && (
+              <button
+                onClick={() => setQuery("")}
+                className="mt-2 text-sm text-slate-300 hover:text-slate-100 underline"
+              >
+                Clear search
+              </button>
+            )}
+          </div>
+        </header>
+
+        {loading && <p className="text-slate-300">Loading venues…</p>}
+        {error && <p className="text-red-400">Error: {error}</p>}
+
+        {!loading && !error && sortedVenues.length === 0 && (
+          <p className="text-slate-300">
+            {query.trim().length > 0
+              ? "No venues matched your search."
+              : "No venues found."}
+          </p>
+        )}
+
+        {!loading && !error && sortedVenues.length > 0 && (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {venues.map((venue) => {
-              const firstImage = venue.media?.[0];
+            {sortedVenues.map((v) => {
+              const img = v.media?.[0]?.url;
+              const alt = v.media?.[0]?.alt || v.name;
 
               return (
                 <Link
-                  key={venue.id} // 👈 key moved here
-                  to={`/venues/${venue.id}`}
-                  className="block hover:opacity-90"
+                  key={v.id}
+                  to={`/venues/${v.id}`}
+                  className="block bg-slate-800 border border-slate-700 rounded-xl overflow-hidden hover:border-slate-500 transition"
                 >
-                  <article className="bg-slate-800 rounded-xl overflow-hidden shadow-lg border border-slate-700 flex flex-col">
-                    {firstImage ? (
+                  <div className="h-44 bg-slate-700">
+                    {img ? (
                       <img
-                        src={firstImage.url}
-                        alt={firstImage.alt || venue.name}
-                        className="h-40 w-full object-cover"
+                        src={img}
+                        alt={alt}
+                        className="h-full w-full object-cover"
                       />
                     ) : (
-                      <div className="h-40 w-full bg-slate-700 flex items-center justify-center text-slate-300 text-sm">
+                      <div className="h-full w-full flex items-center justify-center text-slate-300 text-sm">
                         No image
                       </div>
                     )}
+                  </div>
 
-                    <div className="p-4 flex-1 flex flex-col">
-                      <h2 className="text-lg font-semibold mb-2 line-clamp-1">
-                        {venue.name}
-                      </h2>
-                      <p className="text-sm text-slate-300 mb-3 line-clamp-2">
-                        {venue.description}
+                  <div className="p-4 space-y-2">
+                    <h2 className="font-semibold text-lg truncate">{v.name}</h2>
+
+                    {v.description && (
+                      <p className="text-sm text-slate-300 line-clamp-2">
+                        {v.description}
                       </p>
+                    )}
 
-                      <div className="mt-auto flex items-center justify-between text-sm">
-                        <span className="font-semibold">
-                          {venue.price}{" "}
-                          <span className="text-slate-300">NOK/night</span>
-                        </span>
-                        <span className="text-slate-300">
-                          Max {venue.maxGuests} guests
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between text-sm text-slate-200 pt-2">
+                      <span className="font-semibold">
+                        {v.price} NOK/night
+                      </span>
+                      <span className="text-slate-300">
+                        Max {v.maxGuests} guests
+                      </span>
                     </div>
-                  </article>
+                  </div>
                 </Link>
               );
             })}

@@ -269,3 +269,23 @@ export async function updateAvatar(profileName, accessToken, avatarUrl, avatarAl
     return json.data; // updated profile
   }
   
+  /**
+ * Search venues
+ * Docs: GET /holidaze/venues/search?q=
+ * (Public – no auth needed)
+ */
+export async function searchVenues(query) {
+    const url = `${API_BASE}/holidaze/venues/search?q=${encodeURIComponent(
+      query
+    )}`;
+  
+    const response = await fetch(url);
+  
+    if (!response.ok) {
+      throw new Error(`Failed to search venues (status ${response.status})`);
+    }
+  
+    const json = await response.json();
+    return json.data;
+  }
+  
