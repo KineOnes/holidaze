@@ -209,3 +209,29 @@ export async function fetchVenueWithBookings(venueId, accessToken) {
 
   return json.data; // venue object including bookings[]
 }
+/**
+ * Create a booking (Customer)
+ * Docs: POST /holidaze/bookings
+ * (Requires Bearer token + API key)
+ */
+export async function createBooking(accessToken, bookingData) {
+    const response = await fetch(`${API_BASE}/holidaze/bookings`, {
+      method: "POST",
+      headers: withApiKey({
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      }),
+      body: JSON.stringify(bookingData),
+    });
+  
+    const json = await response.json();
+  
+    if (!response.ok) {
+      const message =
+        json.errors?.[0]?.message || "Failed to create booking. Please try again.";
+      throw new Error(message);
+    }
+  
+    return json.data; // created booking
+  }
+  
