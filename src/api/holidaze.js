@@ -289,3 +289,65 @@ export async function searchVenues(query) {
     return json.data;
   }
   
+  /**
+ * Update a venue
+ * Docs: PUT /holidaze/venues/{id}
+ * (Requires Bearer token + API key)
+ */
+export async function updateVenue(venueId, accessToken, venueData) {
+    const response = await fetch(
+      `${API_BASE}/holidaze/venues/${encodeURIComponent(venueId)}`,
+      {
+        method: "PUT",
+        headers: withApiKey({
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        }),
+        body: JSON.stringify(venueData),
+      }
+    );
+  
+    const json = await response.json();
+  
+    if (!response.ok) {
+      const message =
+        json.errors?.[0]?.message || "Failed to update venue. Please try again.";
+      throw new Error(message);
+    }
+  
+    return json.data;
+  }
+  
+  /**
+   * Delete a venue
+   * Docs: DELETE /holidaze/venues/{id}
+   * (Requires Bearer token + API key)
+   */
+  export async function deleteVenue(venueId, accessToken) {
+    const response = await fetch(
+      `${API_BASE}/holidaze/venues/${encodeURIComponent(venueId)}`,
+      {
+        method: "DELETE",
+        headers: withApiKey({
+          Authorization: `Bearer ${accessToken}`,
+        }),
+      }
+    );
+  
+    // Some APIs return empty body on delete, so we avoid response.json() crashing
+    if (!response.ok) {
+      let json = {};
+      try {
+        json = await response.json();
+      } catch {
+        // ignore
+      }
+  
+      const message =
+        json.errors?.[0]?.message || "Failed to delete venue. Please try again.";
+      throw new Error(message);
+    }
+  
+    return true;
+  }
+  

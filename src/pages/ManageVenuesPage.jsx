@@ -1,21 +1,30 @@
 // src/pages/ManageVenuesPage.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import { fetchManagedVenues, createVenue } from "../api/holidaze.js";
+import {
+  fetchManagedVenues,
+  createVenue,
+  updateVenue,
+  deleteVenue,
+} from "../api/holidaze.js";
 
 export default function ManageVenuesPage() {
-  const { user, token, venueManager } = useAuth();
+  const { user, token, isLoggedIn, venueManager } = useAuth();
+  const navigate = useNavigate();
 
-  // List of venues the user owns
-  const [managedVenues, setManagedVenues] = useState([]);
-  const [loadingVenues, setLoadingVenues] = useState(true);
-  const [venuesError, setVenuesError] = useState(null);
+  const [venues, setVenues] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [pageError, setPageError] = useState(null);
 
-  // Form state
+  // Form mode: create vs edit
+  const [editingId, setEditingId] = useState(null);
+
+  // Form fields
   const [name, setName] = useState("");
-  const [maxGuests, setMaxGuests] = useState("");
-  const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [maxGuests, setMaxGuests] = useState("");
   const [mediaUrls, setMediaUrls] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("");
@@ -25,80 +34,86 @@ export default function ManageVenuesPage() {
   const [breakfast, setBreakfast] = useState(false);
   const [pets, setPets] = useState(false);
 
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState(null);
-  const [submitSuccess, setSubmitSuccess] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [successMsg, setSuccessMsg] = useState(null);
+
+  // Guard
+  useEffect(() => {
+    if (!isLoggedIn) navigate("/login");
+    if (isLoggedIn && !venueManager) navigate("/profile");
+  }, [isLoggedIn, venueManager, navigate]);
 
   // Load managed venues
   useEffect(() => {
-    if (!user || !token) return;
-    if (!venueManager) {
-      setManagedVenues([]);
-      setLoadingVenues(false);
-      return;
-    }
+    if (!user?.name || !token) return;
 
-    async function loadManagedVenues() {
-      setLoadingVenues(true);
-      setVenuesError(null);
+    async function load() {
+      setLoading(true);
+      setPageError(null);
 
       try {
-        const venues = await fetchManagedVenues(user.name, token);
-        setManagedVenues(venues);
+        const data = await fetchManagedVenues(user.name, token);
+        setVenues(data || []);
       } catch (err) {
         console.error(err);
-        setVenuesError(err.message);
+        setPageError(err.message);
       } finally {
-        setLoadingVenues(false);
+        setLoading(false);
       }
     }
 
-    loadManagedVenues();
-  }, [user, token, venueManager]);
+    load();
+  }, [user?.name, token]);
 
-  async function handleCreateVenue(event) {
-    event.preventDefault();
-    setSubmitError(null);
-    setSubmitSuccess(null);
+  const isEditing = useMemo(() => Boolean(editingId), [editingId]);
 
-    if (!venueManager) {
-      setSubmitError("Only venue managers can create venues.");
-      return;
-    }
+  function resetForm() {
+    setEditingId(null);
+    setName("");
+    setDescription("");
+    setPrice("");
+    setMaxGuests("");
+    setMediaUrls("");
+    setCity("");
+    setCountry("");
+    setWifi(false);
+    setParking(false);
+    setBreakfast(false);
+    setPets(false);
+  }
 
-    if (!name.trim() || !description.trim()) {
-      setSubmitError("Name and description are required.");
-      return;
-    }
+  function venueToForm(v) {
+    setEditingId(v.id);
+    setName(v.name || "");
+    setDescription(v.description || "");
+    setPrice(v.price ?? "");
+    setMaxGuests(v.maxGuests ?? "");
+    setCity(v.location?.city || "");
+    setCountry(v.location?.country || "");
 
-    const maxGuestsNumber = Number(maxGuests);
-    const priceNumber = Number(price);
+    setWifi(Boolean(v.meta?.wifi));
+    setParking(Boolean(v.meta?.parking));
+    setBreakfast(Boolean(v.meta?.breakfast));
+    setPets(Boolean(v.meta?.pets));
 
-    if (!Number.isFinite(maxGuestsNumber) || maxGuestsNumber <= 0) {
-      setSubmitError("Max guests must be a positive number.");
-      return;
-    }
+    const urls = Array.isArray(v.media)
+      ? v.media.map((m) => m?.url).filter(Boolean).join(", ")
+      : "";
+    setMediaUrls(urls);
+  }
 
-    if (!Number.isFinite(priceNumber) || priceNumber <= 0) {
-      setSubmitError("Price must be a positive number.");
-      return;
-    }
-
-    // Turn comma-separated URLs into media objects
+  function buildVenuePayload() {
     const media = mediaUrls
       .split(",")
-      .map((url) => url.trim())
+      .map((u) => u.trim())
       .filter(Boolean)
-      .map((url, index) => ({
-        url,
-        alt: `${name} image ${index + 1}`,
-      }));
+      .map((url) => ({ url, alt: "" }));
 
-    const venueData = {
+    return {
       name: name.trim(),
       description: description.trim(),
-      price: priceNumber,
-      maxGuests: maxGuestsNumber,
+      price: Number(price),
+      maxGuests: Number(maxGuests),
       media,
       meta: {
         wifi,
@@ -107,263 +122,314 @@ export default function ManageVenuesPage() {
         pets,
       },
       location: {
-        address: "",
-        city: city.trim() || "Unknown city",
-        country: country.trim() || "Unknown country",
+        city: city.trim() || undefined,
+        country: country.trim() || undefined,
       },
     };
+  }
 
+  async function refreshVenues() {
+    const data = await fetchManagedVenues(user.name, token);
+    setVenues(data || []);
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setPageError(null);
+    setSuccessMsg(null);
+
+    // Basic validation
+    if (!name.trim()) return setPageError("Name is required.");
+    if (!description.trim()) return setPageError("Description is required.");
+
+    const priceNum = Number(price);
+    const maxGuestsNum = Number(maxGuests);
+
+    if (!Number.isFinite(priceNum) || priceNum <= 0) {
+      return setPageError("Price must be a number greater than 0.");
+    }
+    if (!Number.isFinite(maxGuestsNum) || maxGuestsNum <= 0) {
+      return setPageError("Max guests must be a number greater than 0.");
+    }
+
+    setSaving(true);
     try {
-      setSubmitting(true);
-      const created = await createVenue(token, venueData);
+      const payload = buildVenuePayload();
 
-      // Add new venue at top of list
-      setManagedVenues((prev) => [created, ...prev]);
+      if (isEditing) {
+        await updateVenue(editingId, token, payload);
+        setSuccessMsg("Venue updated ✅");
+      } else {
+        await createVenue(token, payload);
+        setSuccessMsg("Venue created ✅");
+      }
 
-      // Clear form
-      setName("");
-      setMaxGuests("");
-      setPrice("");
-      setDescription("");
-      setMediaUrls("");
-      setCity("");
-      setCountry("");
-      setWifi(false);
-      setParking(false);
-      setBreakfast(false);
-      setPets(false);
-
-      setSubmitSuccess("Venue created successfully!");
+      await refreshVenues();
+      resetForm();
     } catch (err) {
       console.error(err);
-      setSubmitError(err.message);
+      setPageError(err.message || "Something went wrong.");
     } finally {
-      setSubmitting(false);
+      setSaving(false);
+    }
+  }
+
+  async function handleDelete(venueId, venueName) {
+    setPageError(null);
+    setSuccessMsg(null);
+
+    const ok = window.confirm(`Delete "${venueName}"? This cannot be undone.`);
+    if (!ok) return;
+
+    try {
+      await deleteVenue(venueId, token);
+      setSuccessMsg("Venue deleted ✅");
+
+      // If you deleted the one you were editing, reset form
+      if (editingId === venueId) resetForm();
+
+      await refreshVenues();
+    } catch (err) {
+      console.error(err);
+      setPageError(err.message || "Failed to delete venue.");
     }
   }
 
   return (
     <main className="min-h-screen bg-slate-900 text-slate-50">
       <section className="max-w-5xl mx-auto px-4 py-10 space-y-8">
-        <header className="space-y-1">
+        <header>
           <h1 className="text-3xl font-bold">Manage venues</h1>
           <p className="text-slate-300">
-            View and manage the venues you own.
+            Create new venues, or edit/delete venues you own.
           </p>
-          {!venueManager && (
-            <p className="text-sm text-amber-400">
-              You are currently a customer account. Only venue managers can
-              create and manage venues.
-            </p>
-          )}
         </header>
 
-        {/* Create venue form */}
-        {venueManager && (
-          <section className="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
-            <h2 className="text-xl font-semibold mb-2">Create a new venue</h2>
+        {/* Form */}
+        <section className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <h2 className="text-xl font-semibold">
+              {isEditing ? "Edit venue" : "Create a new venue"}
+            </h2>
 
-            <form onSubmit={handleCreateVenue} className="space-y-4">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium">
-                    Name <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                </div>
+            {isEditing && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="text-sm rounded-md border border-slate-600 px-3 py-1.5 hover:bg-slate-700"
+              >
+                Cancel edit
+              </button>
+            )}
+          </div>
 
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium">
-                    Price per night (NOK){" "}
-                    <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                    value={price}
-                    onChange={(e) => setPrice(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium">
-                    Max guests <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="number"
-                    min="1"
-                    className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                    value={maxGuests}
-                    onChange={(e) => setMaxGuests(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium">
-                    Media URLs (comma separated)
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
-                    className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                    value={mediaUrls}
-                    onChange={(e) => setMediaUrls(e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="block text-sm font-medium">
-                  Description <span className="text-red-400">*</span>
+          <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium">
+                  Name <span className="text-red-400">*</span>
                 </label>
-                <textarea
-                  className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                  rows={4}
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                <input
+                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Venue name"
                   required
                 />
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium">City</label>
-                  <input
-                    type="text"
-                    className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="block text-sm font-medium">Country</label>
-                  <input
-                    type="text"
-                    className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                    value={country}
-                    onChange={(e) => setCountry(e.target.value)}
-                  />
-                </div>
+              <div>
+                <label className="text-sm font-medium">
+                  Price per night (NOK) <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="e.g. 899"
+                  required
+                  min="1"
+                />
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
-                <fieldset className="space-y-2">
-                  <legend className="text-sm font-medium text-slate-100">
-                    Amenities
-                  </legend>
-                  <div className="flex flex-wrap gap-4 text-sm text-slate-200">
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-600 bg-slate-900"
-                        checked={wifi}
-                        onChange={(e) => setWifi(e.target.checked)}
-                      />
-                      Wi-Fi
-                    </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-600 bg-slate-900"
-                        checked={parking}
-                        onChange={(e) => setParking(e.target.checked)}
-                      />
-                      Parking
-                    </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-600 bg-slate-900"
-                        checked={breakfast}
-                        onChange={(e) => setBreakfast(e.target.checked)}
-                      />
-                      Breakfast
-                    </label>
-                    <label className="inline-flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-600 bg-slate-900"
-                        checked={pets}
-                        onChange={(e) => setPets(e.target.checked)}
-                      />
-                      Pets allowed
-                    </label>
-                  </div>
-                </fieldset>
+              <div>
+                <label className="text-sm font-medium">
+                  Max guests <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="number"
+                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  value={maxGuests}
+                  onChange={(e) => setMaxGuests(e.target.value)}
+                  placeholder="e.g. 4"
+                  required
+                  min="1"
+                />
               </div>
 
-              {submitError && (
-                <p className="text-sm text-red-400">{submitError}</p>
-              )}
-              {submitSuccess && (
-                <p className="text-sm text-emerald-400">{submitSuccess}</p>
-              )}
+              <div>
+                <label className="text-sm font-medium">
+                  Media URLs (comma separated)
+                </label>
+                <input
+                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  value={mediaUrls}
+                  onChange={(e) => setMediaUrls(e.target.value)}
+                  placeholder="https://...jpg, https://...png"
+                />
+              </div>
+            </div>
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="inline-flex items-center justify-center rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed"
-              >
-                {submitting ? "Creating venue…" : "Create venue"}
-              </button>
-            </form>
-          </section>
-        )}
+            <div>
+              <label className="text-sm font-medium">
+                Description <span className="text-red-400">*</span>
+              </label>
+              <textarea
+                className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 min-h-28"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Tell people about your venue..."
+                required
+              />
+            </div>
 
-        {/* Managed venues list */}
-        <section className="space-y-3">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="text-sm font-medium">City</label>
+                <input
+                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="e.g. Bergen"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Country</label>
+                <input
+                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  value={country}
+                  onChange={(e) => setCountry(e.target.value)}
+                  placeholder="e.g. Norway"
+                />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-sm font-medium mb-2">Amenities</p>
+              <div className="flex flex-wrap gap-4 text-sm text-slate-200">
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={wifi}
+                    onChange={(e) => setWifi(e.target.checked)}
+                  />
+                  Wi-Fi
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={parking}
+                    onChange={(e) => setParking(e.target.checked)}
+                  />
+                  Parking
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={breakfast}
+                    onChange={(e) => setBreakfast(e.target.checked)}
+                  />
+                  Breakfast
+                </label>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={pets}
+                    onChange={(e) => setPets(e.target.checked)}
+                  />
+                  Pets allowed
+                </label>
+              </div>
+            </div>
+
+            {pageError && (
+              <p className="text-sm text-red-400 border border-red-900/40 bg-red-950/20 rounded-md p-2">
+                {pageError}
+              </p>
+            )}
+            {successMsg && (
+              <p className="text-sm text-emerald-300 border border-emerald-900/40 bg-emerald-950/20 rounded-md p-2">
+                {successMsg}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={saving}
+              className="w-fit rounded-md bg-emerald-500 text-slate-900 font-semibold px-5 py-2 hover:bg-emerald-400 disabled:opacity-60"
+            >
+              {saving
+                ? isEditing
+                  ? "Saving…"
+                  : "Creating…"
+                : isEditing
+                ? "Save changes"
+                : "Create venue"}
+            </button>
+          </form>
+        </section>
+
+        {/* List */}
+        <section className="space-y-4">
           <h2 className="text-xl font-semibold">Your venues</h2>
 
-          {loadingVenues && (
-            <p className="text-sm text-slate-300">Loading your venues…</p>
+          {loading && <p className="text-slate-300">Loading venues…</p>}
+          {!loading && venues.length === 0 && (
+            <p className="text-slate-300">You don’t own any venues yet.</p>
           )}
 
-          {venuesError && (
-            <p className="text-sm text-red-400">
-              Could not load your venues: {venuesError}
-            </p>
-          )}
+          <div className="grid gap-4 md:grid-cols-2">
+            {venues.map((v) => (
+              <article
+                key={v.id}
+                className="bg-slate-800 border border-slate-700 rounded-2xl p-5 space-y-2"
+              >
+                <h3 className="text-lg font-semibold">{v.name}</h3>
+                <p className="text-slate-300 text-sm line-clamp-2">
+                  {v.description}
+                </p>
 
-          {!loadingVenues && !venuesError && managedVenues.length === 0 && (
-            <p className="text-sm text-slate-300">
-              You don&apos;t manage any venues yet. Once you create a venue, it
-              will appear here.
-            </p>
-          )}
+                <p className="text-sm text-slate-200">
+                  <span className="font-semibold">{v.price} NOK</span> / night ·
+                  Max {v.maxGuests} guests
+                </p>
 
-          {!loadingVenues && !venuesError && managedVenues.length > 0 && (
-            <div className="grid gap-4 md:grid-cols-2">
-              {managedVenues.map((venue) => (
-                <article
-                  key={venue.id}
-                  className="bg-slate-800 border border-slate-700 rounded-xl p-4 flex flex-col gap-2"
-                >
-                  <h3 className="font-semibold text-lg">{venue.name}</h3>
-                  <p className="text-sm text-slate-300 line-clamp-2">
-                    {venue.description}
-                  </p>
-                  <p className="text-sm text-slate-200">
-                    {venue.price} NOK / night • Max {venue.maxGuests} guests
-                  </p>
-                  {venue.location?.city && (
-                    <p className="text-xs text-slate-400">
-                      {venue.location.city}, {venue.location.country}
-                    </p>
-                  )}
-                </article>
-              ))}
-            </div>
-          )}
+                <p className="text-xs text-slate-400">
+                  {v.location?.city ? `${v.location.city}, ` : ""}
+                  {v.location?.country || ""}
+                </p>
+
+                <div className="flex gap-2 pt-3">
+                  <button
+                    type="button"
+                    onClick={() => venueToForm(v)}
+                    className="text-sm rounded-md border border-slate-600 px-3 py-1.5 hover:bg-slate-700"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(v.id, v.name)}
+                    className="text-sm rounded-md border border-red-700/60 text-red-200 px-3 py-1.5 hover:bg-red-950/30"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
         </section>
       </section>
     </main>
