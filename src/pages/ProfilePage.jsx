@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { fetchProfileWithBookings, updateAvatar } from "../api/holidaze.js";
 
 export default function ProfilePage() {
-  const { user, isLoggedIn, venueManager, token, logout } = useAuth();
+  const { user, isLoggedIn, venueManager, token, logout, setUser } = useAuth();
   const navigate = useNavigate();
 
   const [profileData, setProfileData] = useState(null);
@@ -13,22 +13,31 @@ export default function ProfilePage() {
   const [profileError, setProfileError] = useState(null);
 
   // Avatar form state
-  const [newAvatarUrl, setNewAvatarUrl] = useState("");
-  const [newAvatarAlt, setNewAvatarAlt] = useState("");
-  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [avatarUrlInput, setAvatarUrlInput] = useState("");
+  const [avatarAltInput, setAvatarAltInput] = useState("My avatar");
+  const [savingAvatar, setSavingAvatar] = useState(false);
   const [avatarError, setAvatarError] = useState(null);
   const [avatarSuccess, setAvatarSuccess] = useState(null);
 
-  // Guard: if something is weird and we’re here without auth
+  // Hard guard: if auth is missing/broken -> login
   useEffect(() => {
-    if (!isLoggedIn || !user) {
+    // Not logged in at all
+    if (!isLoggedIn) {
       navigate("/login");
+      return;
     }
-  }, [isLoggedIn, user, navigate]);
 
-  // Load profile with bookings + venues from API
+    // Logged in flag is true, but user or token is missing (common after refresh/localStorage issues)
+    if (!user?.name || !token) {
+      logout();
+      navigate("/login");
+      return;
+    }
+  }, [isLoggedIn, user, token, logout, navigate]);
+
+  // Load profile (bookings + venues)
   useEffect(() => {
-    if (!user || !token) return;
+    if (!user?.name || !token) return;
 
     async function loadProfile() {
       setLoadingProfile(true);
@@ -38,81 +47,102 @@ export default function ProfilePage() {
         const data = await fetchProfileWithBookings(user.name, token);
         setProfileData(data);
       } catch (err) {
-        console.error(err);
-        setProfileError(err.message);
+        const message = err?.message || "Failed to load profile.";
+
+        // If token is invalid/expired -> force logout and send to login
+        if (
+          message.toLowerCase().includes("invalid authorization token") ||
+          message.toLowerCase().includes("401")
+        ) {
+          logout();
+          navigate("/login");
+          return;
+        }
+
+        setProfileError(message);
       } finally {
         setLoadingProfile(false);
       }
     }
 
     loadProfile();
-  }, [user, token]);
+  }, [user, token, logout, navigate]);
 
   function handleLogout() {
     logout();
     navigate("/");
   }
 
-  // Update avatar submit
-  async function handleUpdateAvatar(e) {
+  const upcomingBookings = useMemo(() => {
+    if (!profileData?.bookings) return [];
+    const today = new Date();
+
+    return profileData.bookings
+      .filter((booking) => booking.dateFrom && new Date(booking.dateFrom) >= today)
+      .sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
+  }, [profileData]);
+
+  const avatarUrl = user?.avatar?.url;
+  const avatarAlt = user?.avatar?.alt || user?.name || "Avatar";
+
+  async function handleSaveAvatar(e) {
     e.preventDefault();
+
     setAvatarError(null);
     setAvatarSuccess(null);
 
-    if (!newAvatarUrl.trim()) {
+    if (!avatarUrlInput.trim()) {
       setAvatarError("Please paste an image URL.");
       return;
     }
 
-    try {
-      setAvatarSaving(true);
+    if (!user?.name || !token) {
+      setAvatarError("You are not logged in. Please login again.");
+      logout();
+      navigate("/login");
+      return;
+    }
 
-      const updated = await updateAvatar(
+    try {
+      setSavingAvatar(true);
+
+      const updatedProfile = await updateAvatar(
         user.name,
         token,
-        newAvatarUrl.trim(),
-        newAvatarAlt.trim()
+        avatarUrlInput.trim(),
+        avatarAltInput.trim()
       );
 
-      // Update local profile state so UI updates immediately
-      setProfileData((prev) => {
-        if (!prev) return prev;
-        return { ...prev, avatar: updated.avatar };
-      });
+      // Update AuthContext user so Navbar + circle updates immediately
+      if (typeof setUser === "function") {
+        setUser((prev) => ({
+          ...prev,
+          avatar: updatedProfile.avatar,
+        }));
+      }
 
       setAvatarSuccess("Avatar updated!");
-      setNewAvatarUrl("");
-      setNewAvatarAlt("");
+      setAvatarUrlInput("");
     } catch (err) {
-      setAvatarError(err.message);
+      const message = err?.message || "Failed to update avatar.";
+
+      if (
+        message.toLowerCase().includes("invalid authorization token") ||
+        message.toLowerCase().includes("401")
+      ) {
+        logout();
+        navigate("/login");
+        return;
+      }
+
+      setAvatarError(message);
     } finally {
-      setAvatarSaving(false);
+      setSavingAvatar(false);
     }
   }
 
-  // Compute upcoming bookings (today or future)
-  const upcomingBookings = useMemo(() => {
-    if (!profileData?.bookings) return [];
-
-    const today = new Date();
-
-    return profileData.bookings
-      .filter((booking) => {
-        if (!booking.dateFrom) return false;
-        const from = new Date(booking.dateFrom);
-        return from >= today;
-      })
-      .sort((a, b) => new Date(a.dateFrom) - new Date(b.dateFrom));
-  }, [profileData]);
-
-  if (!isLoggedIn || !user) {
-    return null; // Redirect effect will handle it
-  }
-
-  // Use profileData avatar first (updates instantly after save), fallback to user.avatar
-  const currentAvatarUrl = profileData?.avatar?.url || user.avatar?.url;
-  const currentAvatarAlt =
-    profileData?.avatar?.alt || user.avatar?.alt || user.name;
+  // While redirect effect runs, render nothing
+  if (!isLoggedIn || !user?.name) return null;
 
   return (
     <main className="min-h-screen bg-slate-900 text-slate-50">
@@ -120,10 +150,10 @@ export default function ProfilePage() {
         {/* Header */}
         <header className="flex items-center gap-6">
           <div className="h-20 w-20 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-600">
-            {currentAvatarUrl ? (
+            {avatarUrl ? (
               <img
-                src={currentAvatarUrl}
-                alt={currentAvatarAlt}
+                src={avatarUrl}
+                alt={avatarAlt}
                 className="h-full w-full object-cover"
               />
             ) : (
@@ -136,6 +166,7 @@ export default function ProfilePage() {
           <div className="space-y-1">
             <h1 className="text-2xl font-bold">{user.name}</h1>
             <p className="text-sm text-slate-300">{user.email}</p>
+
             <p className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-200">
               <span
                 className={`h-2 w-2 rounded-full ${
@@ -156,7 +187,7 @@ export default function ProfilePage() {
           </div>
         </header>
 
-        {/* Account + status */}
+        {/* Account info */}
         <section className="grid gap-4 md:grid-cols-2">
           <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
             <h2 className="text-lg font-semibold mb-2">Account</h2>
@@ -189,7 +220,7 @@ export default function ProfilePage() {
               </p>
             )}
 
-            {!loadingProfile && !profileError && (
+{!loadingProfile && !profileError && (
               <p className="text-sm text-slate-300">
                 {upcomingBookings.length > 0
                   ? `You have ${upcomingBookings.length} upcoming booking${
@@ -205,26 +236,26 @@ export default function ProfilePage() {
         <section className="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
           <h2 className="text-lg font-semibold">Update avatar</h2>
 
-          <form onSubmit={handleUpdateAvatar} className="space-y-3">
-            <div className="space-y-1">
-              <label className="block text-sm font-medium">Image URL *</label>
+          <form onSubmit={handleSaveAvatar} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">
+                Image URL <span className="text-red-400">*</span>
+              </label>
               <input
-                className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                value={newAvatarUrl}
-                onChange={(e) => setNewAvatarUrl(e.target.value)}
+                className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 placeholder="https://example.com/my-avatar.jpg"
+                value={avatarUrlInput}
+                onChange={(e) => setAvatarUrlInput(e.target.value)}
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="block text-sm font-medium">
-                Alt text (optional)
-              </label>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Alt text (optional)</label>
               <input
-                className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                value={newAvatarAlt}
-                onChange={(e) => setNewAvatarAlt(e.target.value)}
+                className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
                 placeholder="My avatar"
+                value={avatarAltInput}
+                onChange={(e) => setAvatarAltInput(e.target.value)}
               />
             </div>
 
@@ -235,10 +266,10 @@ export default function ProfilePage() {
 
             <button
               type="submit"
-              disabled={avatarSaving}
-              className="rounded-md bg-emerald-500 hover:bg-emerald-400 text-slate-900 px-4 py-2 text-sm font-semibold disabled:opacity-60"
+              disabled={savingAvatar}
+              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 disabled:opacity-60"
             >
-              {avatarSaving ? "Saving..." : "Save avatar"}
+              {savingAvatar ? "Saving..." : "Save avatar"}
             </button>
           </form>
         </section>
@@ -266,8 +297,7 @@ export default function ProfilePage() {
                     </p>
 
                     <p className="text-xs text-slate-300">
-                      {dateFrom.toLocaleDateString()} →{" "}
-                      {dateTo.toLocaleDateString()}
+                      {dateFrom.toLocaleDateString()} → {dateTo.toLocaleDateString()}
                     </p>
 
                     <p className="text-xs text-slate-400">
