@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   fetchVenue,
   fetchVenueWithBookings,
@@ -55,15 +55,13 @@ export default function VenueDetailsPage() {
   const [submitError, setSubmitError] = useState(null);
   const [submitSuccess, setSubmitSuccess] = useState(null);
 
-  async function loadVenue() {
+  const loadVenue = useCallback(async () => {
     setLoading(true);
     try {
-      // Logged out: fetch public venue
-      // Logged in: fetch venue incl. bookings
       const data = token
         ? await fetchVenueWithBookings(id, token)
         : await fetchVenue(id);
-
+  
       setVenue(data);
     } catch (error) {
       console.error(error);
@@ -71,11 +69,12 @@ export default function VenueDetailsPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [id, token]);
 
   useEffect(() => {
     loadVenue();
-  }, [id, token]); // IMPORTANT: include token so it refreshes after login/logout
+  }, [loadVenue]);
+  
 
   const maxGuests = venue?.maxGuests ?? 1;
 
