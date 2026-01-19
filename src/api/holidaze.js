@@ -50,6 +50,25 @@ export async function fetchVenue(id) {
 }
 
 /**
+ * Get a single venue by id INCLUDING bookings
+ * Docs: GET /holidaze/venues/{id}?_bookings=true
+ * (Public – no auth needed)
+ */
+export async function fetchVenueWithBookings(id) {
+  const response = await fetch(
+    `${API_BASE}/holidaze/venues/${encodeURIComponent(id)}?_bookings=true`
+  );
+
+  if (!response.ok) {
+    throw new Error(`Failed to load venue (status ${response.status})`);
+  }
+
+  const json = await response.json();
+  return json.data;
+}
+
+
+/**
  * Register a new user
  * Docs: POST /auth/register
  */
@@ -182,33 +201,7 @@ export async function createVenue(accessToken, venueData) {
   return json.data;
 }
 
-/**
- * Get a venue including its bookings (for Venue Manager)
- * Docs: GET /holidaze/venues/{id}?_bookings=true
- * (Requires Bearer token + API key)
- */
-export async function fetchVenueWithBookings(venueId, accessToken) {
-  const response = await fetch(
-    `${API_BASE}/holidaze/venues/${encodeURIComponent(
-      venueId
-    )}?_bookings=true`,
-    {
-      headers: withApiKey({
-        Authorization: `Bearer ${accessToken}`,
-      }),
-    }
-  );
 
-  const json = await response.json();
-
-  if (!response.ok) {
-    const message =
-      json.errors?.[0]?.message || "Failed to load venue bookings.";
-    throw new Error(message);
-  }
-
-  return json.data; // venue object including bookings[]
-}
 /**
  * Create a booking (Customer)
  * Docs: POST /holidaze/bookings
