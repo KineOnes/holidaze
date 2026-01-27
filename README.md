@@ -18,3 +18,9 @@ If you are developing a production application, we recommend using TypeScript wi
 ## Obsticles met on the way:
 
 Had to transfer my current kanban project board to Trello in the last period of the project due to technical issues. It took time but think I managed to save everything.
+
+## Links:
+
+# Figma Project planning Gantt chart: https://www.figma.com/board/pw461ix0SkJuu9tCfRCZAE/Holidaze-Gantt-Chart-%E2%80%93-Project-Exam-2?node-id=0-1&t=XoOYfb1ksfXYvEvx-1
+
+# Trello Kanban board: https://trello.com/invite/b/696e17930300bfa69ab1a912/ATTI9568dd23857a02b0deabfbf415a5057fEAEF48BF/holidaze-project-exam-2

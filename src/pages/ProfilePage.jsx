@@ -19,7 +19,7 @@ export default function ProfilePage() {
   const [avatarError, setAvatarError] = useState(null);
   const [avatarSuccess, setAvatarSuccess] = useState(null);
 
-  // Guard: må være innlogget
+  // Guard: must be logged in
   useEffect(() => {
     if (!isLoggedIn) {
       navigate("/login");
@@ -109,7 +109,6 @@ export default function ProfilePage() {
         avatarAltInput.trim()
       );
 
-      // Oppdater AuthContext user så navbar/avatar oppdateres med en gang
       if (typeof setUser === "function") {
         setUser((prev) => ({
           ...prev,
@@ -137,7 +136,7 @@ export default function ProfilePage() {
     }
   }
 
-  // Mens redirect-guard kjører
+  // While redirect-guard runs
   if (!isLoggedIn || !user?.name) return null;
 
   return (

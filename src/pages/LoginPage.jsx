@@ -1,4 +1,3 @@
-// src/pages/LoginPage.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { loginUser } from "../api/holidaze";
@@ -20,11 +19,7 @@ export default function LoginPage() {
 
     try {
       const profile = await loginUser({ email, password });
-
-      // profile.accessToken comes from the API response :contentReference[oaicite:2]{index=2}
       login(profile, profile.accessToken);
-
-      // Go to profile page after login
       navigate("/profile");
     } catch (err) {
       console.error(err);
@@ -35,16 +30,18 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-50 flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-slate-800 rounded-xl shadow-lg p-8 space-y-6">
+    <main className="min-h-screen flex items-center justify-center px-4">
+      <div className="w-full max-w-md card space-y-6">
         <h1 className="text-2xl font-bold text-center">Log in</h1>
 
         {error && (
-          <p className="bg-red-900/40 border border-red-500 text-red-100 text-sm rounded-md px-3 py-2">
+          <p
+            className="text-sm rounded-md px-3 py-2 border"
+            style={{ color: "#b91c1c", background: "rgba(185,28,28,0.08)" }}
+          >
             {error}
           </p>
         )}
-
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -58,7 +55,8 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md bg-slate-900 border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full rounded-md px-3 py-2 text-sm border"
+              style={{ background: "rgba(255,255,255,0.7)" }}
             />
           </div>
 
@@ -73,14 +71,16 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md bg-slate-900 border border-slate-600 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+              className="w-full rounded-md px-3 py-2 text-sm border"
+              style={{ background: "rgba(255,255,255,0.7)" }}
             />
           </div>
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full inline-flex justify-center items-center rounded-md bg-emerald-500 hover:bg-emerald-400 disabled:opacity-60 disabled:cursor-not-allowed px-4 py-2 font-semibold text-slate-950"
+            className="w-full inline-flex justify-center items-center rounded-md px-4 py-2 font-semibold disabled:opacity-60"
+            style={{ background: "rgba(0,0,0,0.15)" }}
           >
             {isSubmitting ? "Logging in..." : "Log in"}
           </button>

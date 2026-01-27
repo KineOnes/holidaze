@@ -1,4 +1,3 @@
-// src/pages/ManageVenuesPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -17,10 +16,8 @@ export default function ManageVenuesPage() {
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState(null);
 
-  // Form mode: create vs edit
   const [editingId, setEditingId] = useState(null);
 
-  // Form fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -37,13 +34,11 @@ export default function ManageVenuesPage() {
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState(null);
 
-  // Guard
   useEffect(() => {
     if (!isLoggedIn) navigate("/login");
     if (isLoggedIn && !venueManager) navigate("/profile");
   }, [isLoggedIn, venueManager, navigate]);
 
-  // Load managed venues
   useEffect(() => {
     if (!user?.name || !token) return;
 
@@ -115,12 +110,7 @@ export default function ManageVenuesPage() {
       price: Number(price),
       maxGuests: Number(maxGuests),
       media,
-      meta: {
-        wifi,
-        parking,
-        breakfast,
-        pets,
-      },
+      meta: { wifi, parking, breakfast, pets },
       location: {
         city: city.trim() || undefined,
         country: country.trim() || undefined,
@@ -138,7 +128,6 @@ export default function ManageVenuesPage() {
     setPageError(null);
     setSuccessMsg(null);
 
-    // Basic validation
     if (!name.trim()) return setPageError("Name is required.");
     if (!description.trim()) return setPageError("Description is required.");
 
@@ -184,10 +173,7 @@ export default function ManageVenuesPage() {
     try {
       await deleteVenue(venueId, token);
       setSuccessMsg("Venue deleted ✅");
-
-      // If you deleted the one you were editing, reset form
       if (editingId === venueId) resetForm();
-
       await refreshVenues();
     } catch (err) {
       console.error(err);
@@ -196,17 +182,17 @@ export default function ManageVenuesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-50">
+    <main className="min-h-screen">
       <section className="max-w-5xl mx-auto px-4 py-10 space-y-8">
         <header>
           <h1 className="text-3xl font-bold">Manage venues</h1>
-          <p className="text-slate-300">
+          <p style={{ opacity: 0.85 }}>
             Create new venues, or edit/delete venues you own.
           </p>
         </header>
 
         {/* Form */}
-        <section className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+        <section className="card">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <h2 className="text-xl font-semibold">
               {isEditing ? "Edit venue" : "Create a new venue"}
@@ -216,22 +202,23 @@ export default function ManageVenuesPage() {
               <button
                 type="button"
                 onClick={resetForm}
-                className="text-sm rounded-md border border-slate-600 px-3 py-1.5 hover:bg-slate-700"
+                className="text-sm rounded-md px-3 py-1.5 border"
+                style={{ background: "rgba(255,255,255,0.2)" }}
               >
                 Cancel edit
               </button>
             )}
           </div>
 
-         
           <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
                 <label className="text-sm font-medium">
-                  Name <span className="text-red-400">*</span>
+                  Name <span style={{ color: "#b91c1c" }}>*</span>
                 </label>
                 <input
-                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-md px-3 py-2 border"
+                  style={{ background: "rgba(255,255,255,0.7)" }}
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Venue name"
@@ -241,11 +228,12 @@ export default function ManageVenuesPage() {
 
               <div>
                 <label className="text-sm font-medium">
-                  Price per night (NOK) <span className="text-red-400">*</span>
+                  Price per night (NOK) <span style={{ color: "#b91c1c" }}>*</span>
                 </label>
                 <input
                   type="number"
-                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-md px-3 py-2 border"
+                  style={{ background: "rgba(255,255,255,0.7)" }}
                   value={price}
                   onChange={(e) => setPrice(e.target.value)}
                   placeholder="e.g. 899"
@@ -256,11 +244,12 @@ export default function ManageVenuesPage() {
 
               <div>
                 <label className="text-sm font-medium">
-                  Max guests <span className="text-red-400">*</span>
+                  Max guests <span style={{ color: "#b91c1c" }}>*</span>
                 </label>
                 <input
                   type="number"
-                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-md px-3 py-2 border"
+                  style={{ background: "rgba(255,255,255,0.7)" }}
                   value={maxGuests}
                   onChange={(e) => setMaxGuests(e.target.value)}
                   placeholder="e.g. 4"
@@ -270,11 +259,10 @@ export default function ManageVenuesPage() {
               </div>
 
               <div>
-                <label className="text-sm font-medium">
-                  Media URLs (comma separated)
-                </label>
+                <label className="text-sm font-medium">Media URLs (comma separated)</label>
                 <input
-                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-md px-3 py-2 border"
+                  style={{ background: "rgba(255,255,255,0.7)" }}
                   value={mediaUrls}
                   onChange={(e) => setMediaUrls(e.target.value)}
                   placeholder="https://...jpg, https://...png"
@@ -284,10 +272,11 @@ export default function ManageVenuesPage() {
 
             <div>
               <label className="text-sm font-medium">
-                Description <span className="text-red-400">*</span>
+                Description <span style={{ color: "#b91c1c" }}>*</span>
               </label>
               <textarea
-                className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 min-h-28"
+                className="mt-1 w-full rounded-md px-3 py-2 min-h-28 border"
+                style={{ background: "rgba(255,255,255,0.7)" }}
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Tell people about your venue..."
@@ -299,7 +288,8 @@ export default function ManageVenuesPage() {
               <div>
                 <label className="text-sm font-medium">City</label>
                 <input
-                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-md px-3 py-2 border"
+                  style={{ background: "rgba(255,255,255,0.7)" }}
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
                   placeholder="e.g. Bergen"
@@ -308,7 +298,8 @@ export default function ManageVenuesPage() {
               <div>
                 <label className="text-sm font-medium">Country</label>
                 <input
-                  className="mt-1 w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2"
+                  className="mt-1 w-full rounded-md px-3 py-2 border"
+                  style={{ background: "rgba(255,255,255,0.7)" }}
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
                   placeholder="e.g. Norway"
@@ -318,49 +309,33 @@ export default function ManageVenuesPage() {
 
             <div>
               <p className="text-sm font-medium mb-2">Amenities</p>
-              <div className="flex flex-wrap gap-4 text-sm text-slate-200">
+              <div className="flex flex-wrap gap-4 text-sm" style={{ opacity: 0.9 }}>
                 <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={wifi}
-                    onChange={(e) => setWifi(e.target.checked)}
-                  />
+                  <input type="checkbox" checked={wifi} onChange={(e) => setWifi(e.target.checked)} />
                   Wi-Fi
                 </label>
                 <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={parking}
-                    onChange={(e) => setParking(e.target.checked)}
-                  />
+                  <input type="checkbox" checked={parking} onChange={(e) => setParking(e.target.checked)} />
                   Parking
                 </label>
                 <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={breakfast}
-                    onChange={(e) => setBreakfast(e.target.checked)}
-                  />
+                  <input type="checkbox" checked={breakfast} onChange={(e) => setBreakfast(e.target.checked)} />
                   Breakfast
                 </label>
                 <label className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={pets}
-                    onChange={(e) => setPets(e.target.checked)}
-                  />
+                  <input type="checkbox" checked={pets} onChange={(e) => setPets(e.target.checked)} />
                   Pets allowed
                 </label>
               </div>
             </div>
 
             {pageError && (
-              <p className="text-sm text-red-400 border border-red-900/40 bg-red-950/20 rounded-md p-2">
+              <p className="text-sm rounded-md p-2 border" style={{ color: "#b91c1c", background: "rgba(185,28,28,0.08)" }}>
                 {pageError}
               </p>
             )}
             {successMsg && (
-              <p className="text-sm text-emerald-300 border border-emerald-900/40 bg-emerald-950/20 rounded-md p-2">
+              <p className="text-sm rounded-md p-2 border" style={{ background: "rgba(0,0,0,0.08)" }}>
                 {successMsg}
               </p>
             )}
@@ -368,7 +343,8 @@ export default function ManageVenuesPage() {
             <button
               type="submit"
               disabled={saving}
-              className="w-fit rounded-md bg-emerald-500 text-slate-900 font-semibold px-5 py-2 hover:bg-emerald-400 disabled:opacity-60"
+              className="w-fit rounded-md px-5 py-2 font-semibold disabled:opacity-60"
+              style={{ background: "rgba(0,0,0,0.15)" }}
             >
               {saving
                 ? isEditing
@@ -379,35 +355,31 @@ export default function ManageVenuesPage() {
                 : "Create venue"}
             </button>
           </form>
-          
         </section>
 
         {/* List */}
         <section className="space-y-4">
           <h2 className="text-xl font-semibold">Your venues</h2>
 
-          {loading && <p className="text-slate-300">Loading venues…</p>}
+          {loading && <p style={{ opacity: 0.85 }}>Loading venues…</p>}
           {!loading && venues.length === 0 && (
-            <p className="text-slate-300">You don’t own any venues yet.</p>
+            <p style={{ opacity: 0.85 }}>You don’t own any venues yet.</p>
           )}
 
           <div className="grid gap-4 md:grid-cols-2">
             {venues.map((v) => (
-              <article
-                key={v.id}
-                className="bg-slate-800 border border-slate-700 rounded-2xl p-5 space-y-2"
-              >
+              <article key={v.id} className="card space-y-2">
                 <h3 className="text-lg font-semibold">{v.name}</h3>
-                <p className="text-slate-300 text-sm line-clamp-2">
+                <p className="text-sm line-clamp-2" style={{ opacity: 0.85 }}>
                   {v.description}
                 </p>
 
-                <p className="text-sm text-slate-200">
-                  <span className="font-semibold">{v.price} NOK</span> / night ·
-                  Max {v.maxGuests} guests
+                <p className="text-sm">
+                  <span className="font-semibold">{v.price} NOK</span> / night · Max{" "}
+                  {v.maxGuests} guests
                 </p>
 
-                <p className="text-xs text-slate-400">
+                <p className="text-xs" style={{ opacity: 0.75 }}>
                   {v.location?.city ? `${v.location.city}, ` : ""}
                   {v.location?.country || ""}
                 </p>
@@ -416,7 +388,8 @@ export default function ManageVenuesPage() {
                   <button
                     type="button"
                     onClick={() => venueToForm(v)}
-                    className="text-sm rounded-md border border-slate-600 px-3 py-1.5 hover:bg-slate-700"
+                    className="text-sm rounded-md px-3 py-1.5 border"
+                    style={{ background: "rgba(255,255,255,0.2)" }}
                   >
                     Edit
                   </button>
@@ -424,7 +397,8 @@ export default function ManageVenuesPage() {
                   <button
                     type="button"
                     onClick={() => handleDelete(v.id, v.name)}
-                    className="text-sm rounded-md border border-red-700/60 text-red-200 px-3 py-1.5 hover:bg-red-950/30"
+                    className="text-sm rounded-md px-3 py-1.5 border"
+                    style={{ background: "rgba(185,28,28,0.08)", color: "#b91c1c" }}
                   >
                     Delete
                   </button>
