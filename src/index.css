@@ -4,9 +4,9 @@
    Global color variables
    ========================= */
 :root {
-  --color-bg-main: #5568af;   /* Sky Blue */
-  --color-bg-card: #cee0ee;   /* Aqua */
-  --color-text-main: #0f172a; /* Dark text */
+  --color-bg-main: #ffba82;   /* Sky Blue */
+  --color-bg-card: #ffadc0;   /* Aqua */
+  --color-text-main: #bf0616; /* Dark text */
 }
 
 /* Make the app use the background everywhere */

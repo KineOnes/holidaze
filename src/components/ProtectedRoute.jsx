@@ -1,4 +1,3 @@
-// src/components/ProtectedRoute.jsx
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
@@ -26,7 +25,7 @@ export function ManagerRoute({ children }) {
   const location = useLocation();
 
   if (!isLoggedIn || !venueManager) {
-    // you can choose where to send them instead
+    // choose where to send them instead
     return (
       <Navigate
         to="/profile"

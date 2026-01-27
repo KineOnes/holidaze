@@ -1,4 +1,3 @@
-// src/pages/VenuesPage.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchVenues, searchVenues } from "../api/holidaze.js";
