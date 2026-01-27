@@ -223,6 +223,7 @@ export default function ManageVenuesPage() {
             )}
           </div>
 
+         
           <form onSubmit={handleSubmit} className="mt-5 grid gap-4">
             <div className="grid gap-4 md:grid-cols-2">
               <div>
@@ -378,6 +379,7 @@ export default function ManageVenuesPage() {
                 : "Create venue"}
             </button>
           </form>
+          
         </section>
 
         {/* List */}

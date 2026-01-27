@@ -19,15 +19,13 @@ export default function ProfilePage() {
   const [avatarError, setAvatarError] = useState(null);
   const [avatarSuccess, setAvatarSuccess] = useState(null);
 
-  // Hard guard: if auth is missing/broken -> login
+  // Guard: må være innlogget
   useEffect(() => {
-    // Not logged in at all
     if (!isLoggedIn) {
       navigate("/login");
       return;
     }
 
-    // Logged in flag is true, but user or token is missing (common after refresh/localStorage issues)
     if (!user?.name || !token) {
       logout();
       navigate("/login");
@@ -35,7 +33,7 @@ export default function ProfilePage() {
     }
   }, [isLoggedIn, user, token, logout, navigate]);
 
-  // Load profile (bookings + venues)
+  // Load profile (bookings)
   useEffect(() => {
     if (!user?.name || !token) return;
 
@@ -49,7 +47,6 @@ export default function ProfilePage() {
       } catch (err) {
         const message = err?.message || "Failed to load profile.";
 
-        // If token is invalid/expired -> force logout and send to login
         if (
           message.toLowerCase().includes("invalid authorization token") ||
           message.toLowerCase().includes("401")
@@ -87,7 +84,6 @@ export default function ProfilePage() {
 
   async function handleSaveAvatar(e) {
     e.preventDefault();
-
     setAvatarError(null);
     setAvatarSuccess(null);
 
@@ -113,7 +109,7 @@ export default function ProfilePage() {
         avatarAltInput.trim()
       );
 
-      // Update AuthContext user so Navbar + circle updates immediately
+      // Oppdater AuthContext user så navbar/avatar oppdateres med en gang
       if (typeof setUser === "function") {
         setUser((prev) => ({
           ...prev,
@@ -141,175 +137,173 @@ export default function ProfilePage() {
     }
   }
 
-  // While redirect effect runs, render nothing
+  // Mens redirect-guard kjører
   if (!isLoggedIn || !user?.name) return null;
 
   return (
-    <main className="min-h-screen bg-slate-900 text-slate-50">
-      <section className="max-w-4xl mx-auto px-4 py-10 space-y-8">
-        {/* Header */}
-        <header className="flex items-center gap-6">
-          <div className="h-20 w-20 rounded-full bg-slate-800 flex items-center justify-center overflow-hidden border border-slate-600">
-            {avatarUrl ? (
-              <img
-                src={avatarUrl}
-                alt={avatarAlt}
-                className="h-full w-full object-cover"
-              />
-            ) : (
-              <span className="text-2xl font-bold">
-                {user.name?.charAt(0).toUpperCase()}
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-1">
-            <h1 className="text-2xl font-bold">{user.name}</h1>
-            <p className="text-sm text-slate-300">{user.email}</p>
-
-            <p className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-200">
-              <span
-                className={`h-2 w-2 rounded-full ${
-                  venueManager ? "bg-emerald-400" : "bg-slate-400"
-                }`}
-              />
-              {venueManager ? "Venue manager" : "Customer"}
-            </p>
-          </div>
-
-          <div className="ml-auto">
-            <button
-              onClick={handleLogout}
-              className="text-sm rounded-md border border-slate-600 px-3 py-1.5 hover:bg-slate-800"
-            >
-              Log out
-            </button>
-          </div>
-        </header>
-
-        {/* Account info */}
-        <section className="grid gap-4 md:grid-cols-2">
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-            <h2 className="text-lg font-semibold mb-2">Account</h2>
-            <ul className="text-sm text-slate-300 space-y-1">
-              <li>
-                <span className="font-medium text-slate-100">Name: </span>
-                {user.name}
-              </li>
-              <li>
-                <span className="font-medium text-slate-100">Email: </span>
-                {user.email}
-              </li>
-              <li>
-                <span className="font-medium text-slate-100">Role: </span>
-                {venueManager ? "Venue manager" : "Customer"}
-              </li>
-            </ul>
-          </div>
-
-          <div className="bg-slate-800 border border-slate-700 rounded-xl p-4">
-            <h2 className="text-lg font-semibold mb-2">Profile data status</h2>
-
-            {loadingProfile && (
-              <p className="text-sm text-slate-300">Loading bookings…</p>
-            )}
-
-            {profileError && (
-              <p className="text-sm text-red-400">
-                Could not load bookings: {profileError}
-              </p>
-            )}
-
-{!loadingProfile && !profileError && (
-              <p className="text-sm text-slate-300">
-                {upcomingBookings.length > 0
-                  ? `You have ${upcomingBookings.length} upcoming booking${
-                      upcomingBookings.length > 1 ? "s" : ""
-                    }.`
-                  : "You have no upcoming bookings."}
-              </p>
-            )}
-          </div>
-        </section>
-
-        {/* Update avatar */}
-        <section className="bg-slate-800 border border-slate-700 rounded-xl p-6 space-y-4">
-          <h2 className="text-lg font-semibold">Update avatar</h2>
-
-          <form onSubmit={handleSaveAvatar} className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Image URL <span className="text-red-400">*</span>
-              </label>
-              <input
-                className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                placeholder="https://example.com/my-avatar.jpg"
-                value={avatarUrlInput}
-                onChange={(e) => setAvatarUrlInput(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Alt text (optional)</label>
-              <input
-                className="w-full rounded-md bg-slate-900 border border-slate-700 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
-                placeholder="My avatar"
-                value={avatarAltInput}
-                onChange={(e) => setAvatarAltInput(e.target.value)}
-              />
-            </div>
-
-            {avatarError && <p className="text-sm text-red-400">{avatarError}</p>}
-            {avatarSuccess && (
-              <p className="text-sm text-emerald-300">{avatarSuccess}</p>
-            )}
-
-            <button
-              type="submit"
-              disabled={savingAvatar}
-              className="rounded-md bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-emerald-400 disabled:opacity-60"
-            >
-              {savingAvatar ? "Saving..." : "Save avatar"}
-            </button>
-          </form>
-        </section>
-
-        {/* Upcoming bookings */}
-        <section className="mt-10">
-          <h2 className="text-xl font-semibold mb-4">Upcoming bookings</h2>
-
-          {upcomingBookings.length === 0 ? (
-            <p className="text-slate-300">You have no upcoming bookings.</p>
+    <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
+      {/* Header */}
+      <header className="flex items-center gap-6">
+        <div
+          className="h-20 w-20 rounded-full flex items-center justify-center overflow-hidden"
+          style={{ background: "rgba(255,255,255,0.25)" }}
+        >
+          {avatarUrl ? (
+            <img src={avatarUrl} alt={avatarAlt} className="h-full w-full object-cover" />
           ) : (
-            <ul className="space-y-4">
-              {upcomingBookings.map((booking) => {
-                const venue = booking.venue;
-                const dateFrom = new Date(booking.dateFrom);
-                const dateTo = new Date(booking.dateTo);
-
-                return (
-                  <li
-                    key={booking.id}
-                    className="bg-slate-800 p-4 rounded-lg border border-slate-700"
-                  >
-                    <p className="text-sm font-semibold">
-                      {venue?.name || "Unknown venue"}
-                    </p>
-
-                    <p className="text-xs text-slate-300">
-                      {dateFrom.toLocaleDateString()} → {dateTo.toLocaleDateString()}
-                    </p>
-
-                    <p className="text-xs text-slate-400">
-                      Guests: {booking.guests}
-                    </p>
-                  </li>
-                );
-              })}
-            </ul>
+            <span className="text-2xl font-bold">
+              {user.name?.charAt(0).toUpperCase()}
+            </span>
           )}
-        </section>
+        </div>
+
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold">{user.name}</h1>
+          <p className="text-sm opacity-80">{user.email}</p>
+
+          <p
+            className="text-xs inline-flex items-center gap-2 px-2 py-1 rounded-full"
+            style={{ background: "rgba(0,0,0,0.08)" }}
+          >
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ background: venueManager ? "#10b981" : "rgba(0,0,0,0.35)" }}
+            />
+            {venueManager ? "Venue manager" : "Customer"}
+          </p>
+        </div>
+
+        <div className="ml-auto">
+          <button
+            onClick={handleLogout}
+            className="text-sm rounded-md px-3 py-1.5 font-medium"
+            style={{ background: "rgba(0,0,0,0.12)" }}
+          >
+            Log out
+          </button>
+        </div>
+      </header>
+
+      {/* Info cards */}
+      <section className="grid gap-6 md:grid-cols-2">
+        <div className="card">
+          <h2 className="text-lg font-semibold mb-2">Account</h2>
+          <ul className="text-sm space-y-1" style={{ opacity: 0.85 }}>
+            <li>
+              <span className="font-semibold">Name:</span> {user.name}
+            </li>
+            <li>
+              <span className="font-semibold">Email:</span> {user.email}
+            </li>
+            <li>
+              <span className="font-semibold">Role:</span>{" "}
+              {venueManager ? "Venue manager" : "Customer"}
+            </li>
+          </ul>
+        </div>
+
+        <div className="card">
+          <h2 className="text-lg font-semibold mb-2">Profile data status</h2>
+
+          {loadingProfile && <p className="text-sm opacity-80">Loading bookings…</p>}
+
+          {profileError && (
+            <p className="text-sm" style={{ color: "#b91c1c" }}>
+              Could not load bookings: {profileError}
+            </p>
+          )}
+
+          {!loadingProfile && !profileError && (
+            <p className="text-sm opacity-80">
+              {upcomingBookings.length > 0
+                ? `You have ${upcomingBookings.length} upcoming booking${
+                    upcomingBookings.length > 1 ? "s" : ""
+                  }.`
+                : "You have no upcoming bookings."}
+            </p>
+          )}
+        </div>
       </section>
-    </main>
+
+      {/* Update avatar */}
+      <section className="card space-y-4">
+        <h2 className="text-lg font-semibold">Update avatar</h2>
+
+        <form onSubmit={handleSaveAvatar} className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium">
+              Image URL <span style={{ color: "#b91c1c" }}>*</span>
+            </label>
+            <input
+              className="w-full rounded-md px-3 py-2 text-sm border"
+              style={{ background: "rgba(255,255,255,0.7)" }}
+              placeholder="https://example.com/my-avatar.jpg"
+              value={avatarUrlInput}
+              onChange={(e) => setAvatarUrlInput(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Alt text (optional)</label>
+            <input
+              className="w-full rounded-md px-3 py-2 text-sm border"
+              style={{ background: "rgba(255,255,255,0.7)" }}
+              placeholder="My avatar"
+              value={avatarAltInput}
+              onChange={(e) => setAvatarAltInput(e.target.value)}
+            />
+          </div>
+
+          {avatarError && (
+            <p className="text-sm" style={{ color: "#b91c1c" }}>
+              {avatarError}
+            </p>
+          )}
+          {avatarSuccess && <p className="text-sm">{avatarSuccess}</p>}
+
+          <button
+            type="submit"
+            disabled={savingAvatar}
+            className="px-4 py-2 rounded-md font-semibold disabled:opacity-60"
+            style={{ background: "rgba(0,0,0,0.15)" }}
+          >
+            {savingAvatar ? "Saving..." : "Save avatar"}
+          </button>
+        </form>
+      </section>
+
+      {/* Upcoming bookings */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold">Upcoming bookings</h2>
+
+        {upcomingBookings.length === 0 ? (
+          <p style={{ opacity: 0.85 }}>You have no upcoming bookings.</p>
+        ) : (
+          <ul className="space-y-4">
+            {upcomingBookings.map((booking) => {
+              const venue = booking.venue;
+              const dateFrom = new Date(booking.dateFrom);
+              const dateTo = new Date(booking.dateTo);
+
+              return (
+                <li key={booking.id} className="card">
+                  <p className="text-sm font-semibold">
+                    {venue?.name || "Unknown venue"}
+                  </p>
+
+                  <p className="text-xs" style={{ opacity: 0.8 }}>
+                    {dateFrom.toLocaleDateString()} → {dateTo.toLocaleDateString()}
+                  </p>
+
+                  <p className="text-xs" style={{ opacity: 0.75 }}>
+                    Guests: {booking.guests}
+                  </p>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    </div>
   );
 }

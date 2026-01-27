@@ -1,3 +1,27 @@
 @import "tailwindcss";
 
-/* Her kan du legge egen CSS hvis du vil senere */
+/* =========================
+   Global color variables
+   ========================= */
+:root {
+  --color-bg-main: #5568af;   /* Sky Blue */
+  --color-bg-card: #cee0ee;   /* Aqua */
+  --color-text-main: #0f172a; /* Dark text */
+}
+
+/* Make the app use the background everywhere */
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg-main);
+  color: var(--color-text-main);
+}
+
+/* Simple reusable “card” style */
+.card {
+  background: var(--color-bg-card);
+  border-radius: 1rem;
+  padding: 1.5rem;
+}
