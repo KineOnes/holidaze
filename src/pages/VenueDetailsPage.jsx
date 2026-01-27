@@ -271,8 +271,7 @@ export default function VenueDetailsPage() {
             <button
               type="submit"
               disabled={!canSubmit || submitting}
-              className="px-4 py-2 rounded-md font-semibold disabled:opacity-50"
-              style={{ background: "rgba(0,0,0,0.15)" }}
+              className="btn btn-primary w-full sm:w-auto"
             >
               {submitting ? "Booking…" : "Book now"}
             </button>

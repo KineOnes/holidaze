@@ -154,8 +154,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="mt-2 w-full rounded-md py-2 text-sm font-semibold disabled:opacity-60"
-            style={{ background: "rgba(0,0,0,0.15)" }}
+            className="btn btn-primary w-full"
           >
             {isSubmitting ? "Creating account..." : "Create account"}
           </button>

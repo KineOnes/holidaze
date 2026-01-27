@@ -79,8 +79,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full inline-flex justify-center items-center rounded-md px-4 py-2 font-semibold disabled:opacity-60"
-            style={{ background: "rgba(0,0,0,0.15)" }}
+            className="btn btn-primary w-full"
           >
             {isSubmitting ? "Logging in..." : "Log in"}
           </button>

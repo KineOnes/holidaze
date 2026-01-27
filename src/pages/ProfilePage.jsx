@@ -172,13 +172,9 @@ export default function ProfilePage() {
         </div>
 
         <div className="ml-auto">
-          <button
-            onClick={handleLogout}
-            className="text-sm rounded-md px-3 py-1.5 font-medium"
-            style={{ background: "rgba(0,0,0,0.12)" }}
-          >
-            Log out
-          </button>
+            <button onClick={handleLogout} className="btn btn-soft">
+              Log out
+            </button>
         </div>
       </header>
 
@@ -262,8 +258,7 @@ export default function ProfilePage() {
           <button
             type="submit"
             disabled={savingAvatar}
-            className="px-4 py-2 rounded-md font-semibold disabled:opacity-60"
-            style={{ background: "rgba(0,0,0,0.15)" }}
+            className="btn btn-primary"
           >
             {savingAvatar ? "Saving..." : "Save avatar"}
           </button>
