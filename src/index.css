@@ -1,4 +1,10 @@
 @import "tailwindcss";
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Script&display=swap");
+
+.font-script {
+  font-family: "Playfair Script", cursive;
+}
+
 
 /* =========================
    Global color variables

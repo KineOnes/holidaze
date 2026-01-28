@@ -1,5 +1,3 @@
-// src/api/holidaze.js
-
 // Base URL from the Noroff v2 API docs
 const API_BASE = "https://v2.api.noroff.dev";
 
