@@ -1,84 +1,68 @@
-/* src/index.css */
 @import "tailwindcss";
 
 /* =========================
    Global color variables
    ========================= */
 :root {
-  /* Page + card */
   --color-bg-main: #ffba82;   /* Peach background */
-  --color-bg-card: #ffadc0;   /* Light pink cards */
+  --color-bg-card: #ffadc0;   /* Soft pink cards */
+  --color-text-main: #bf0616; /* Deep rose text */
 
-  /* Text */
-  --color-text-main: #bf0616; /* Dark red text */
-
-  /* Brand / buttons / navbar accents */
-  --brand: #ec1763;           /* Electric Rose */
-  --brand-hover: #d41458;     /* darker hover */
-  --brand-soft: #ffd1e1;      /* very light pink text */
-  --brand-ink: #7a0027;       /* deep rose for text on light backgrounds */
+  --color-accent: #ec1763;    /* Electric pink */
+  --color-accent-soft: #ffd1e1;
 }
 
-/* Make the app use the background everywhere */
-html,
-body,
-#root {
+/* Layout */
+html, body, #root {
   height: 100%;
 }
 
 body {
   background: var(--color-bg-main);
   color: var(--color-text-main);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
 }
 
-/* =========================
-   Reusable components
-   ========================= */
-@layer components {
-  /* Card */
-  .card {
-    background: var(--color-bg-card);
-    border-radius: 1rem;
-    padding: 1.5rem;
-  }
+/* Card */
+.card {
+  background: var(--color-bg-card);
+  border-radius: 1.25rem;
+  padding: 1.75rem;
+}
 
-  /* Base button style (use on <button> AND <a>/<Link>) */
-  .btn {
-    @apply inline-flex items-center justify-center gap-2
-      rounded-xl px-5 py-2.5 text-sm font-semibold
-      transition duration-150 shadow-sm
-      focus:outline-none focus:ring-2 focus:ring-offset-2
-      disabled:opacity-50 disabled:cursor-not-allowed;
-    --tw-ring-color: color-mix(in srgb, var(--brand) 55%, white);
-    --tw-ring-offset-color: transparent;
-  }
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.4rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
 
-  /* Primary / CTA */
-  .btn-primary {
-    background: var(--brand);
-    color: var(--brand-soft);
-  }
-  .btn-primary:hover {
-    background: var(--brand-hover);
-  }
+.btn-primary {
+  background: var(--color-accent);
+  color: #fff;
+}
 
-  /* Soft button (great for secondary actions like Log out) */
-  .btn-soft {
-    background: color-mix(in srgb, var(--brand) 18%, white);
-    color: var(--brand-ink);
-    border: 1px solid color-mix(in srgb, var(--brand) 35%, white);
-  }
-  .btn-soft:hover {
-    background: color-mix(in srgb, var(--brand) 25%, white);
-  }
+.btn-primary:hover {
+  filter: brightness(1.05);
+}
 
-  /* Outline button (nice for navbar links on pink background) */
-  .btn-outline {
-    background: transparent;
-    color: var(--brand-soft);
-    border: 1px solid color-mix(in srgb, var(--brand-soft) 60%, transparent);
-  }
-  .btn-outline:hover {
-    background: color-mix(in srgb, var(--brand-soft) 12%, transparent);
-  }
+.btn-soft {
+  background: var(--color-accent-soft);
+  color: var(--color-text-main);
+}
+
+.btn-soft:hover {
+  filter: brightness(1.05);
+}
+
+/* Brand logo text */
+.brand-logo {
+  font-family: "Playfair Script", cursive;
+  color: #ec1763; /* Electric / dark pink */
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
