@@ -1,40 +1,34 @@
-// src/context/AuthContext.jsx
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
 const AuthContext = createContext();
-
 const STORAGE_KEY = "holidaze_auth";
 
+function readStoredAuth() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null); // profile object from API
-  const [token, setToken] = useState("");
+  const stored = readStoredAuth();
 
-  // Load from localStorage on first render
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return;
+  const [user, setUser] = useState(stored?.user ?? null);
+  const [token, setToken] = useState(stored?.token ?? "");
 
-    try {
-      const parsed = JSON.parse(stored);
-      if (parsed.token) setToken(parsed.token);
-      if (parsed.user) setUser(parsed.user);
-    } catch {
-      // If something is weird in storage, just ignore it
-      console.warn("Could not parse stored auth data");
-    }
-  }, []);
+  function persist(nextUser, nextToken) {
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ user: nextUser, token: nextToken })
+    );
+  }
 
   function login(profile, accessToken) {
     setUser(profile);
     setToken(accessToken);
-
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        user: profile,
-        token: accessToken,
-      })
-    );
+    persist(profile, accessToken);
   }
 
   function logout() {
@@ -43,14 +37,27 @@ export function AuthProvider({ children }) {
     localStorage.removeItem(STORAGE_KEY);
   }
 
-  const value = {
-    user,
-    token,
-    isLoggedIn: !!token,
-    venueManager: user?.venueManager ?? false,
-    login,
-    logout,
-  };
+  // Use anywhere an update of user fields is needed(avatar, banner, etc)
+  function updateUser(updater) {
+    setUser((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      persist(next, token);
+      return next;
+    });
+  }
+
+  const value = useMemo(
+    () => ({
+      user,
+      token,
+      isLoggedIn: !!token,
+      venueManager: user?.venueManager ?? false,
+      login,
+      logout,
+      updateUser,
+    }),
+    [user, token]
+  );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

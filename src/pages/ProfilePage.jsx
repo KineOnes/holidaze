@@ -4,8 +4,8 @@ import { useAuth } from "../context/AuthContext.jsx";
 import { fetchProfileWithBookings, updateAvatar } from "../api/holidaze.js";
 
 export default function ProfilePage() {
-  const { user, isLoggedIn, venueManager, token, logout, setUser } = useAuth();
-  const navigate = useNavigate();
+    const { user, isLoggedIn, venueManager, token, logout, updateUser } = useAuth();
+    const navigate = useNavigate();
 
   const [profileData, setProfileData] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -108,12 +108,11 @@ export default function ProfilePage() {
         avatarAltInput.trim()
       );
 
-      if (typeof setUser === "function") {
-        setUser((prev) => ({
-          ...prev,
-          avatar: updatedProfile.avatar,
-        }));
-      }
+      updateUser((prev) => ({
+        ...prev,
+        avatar: updatedProfile.avatar,
+      }));
+      
 
       setAvatarSuccess("Avatar updated!");
       setAvatarUrlInput("");
