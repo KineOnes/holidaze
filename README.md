@@ -98,7 +98,6 @@ Other future improvements may include:
 
 - Better mobile responsiveness
 
-- Additional accessibility refinements
 
 ## Links:
 
